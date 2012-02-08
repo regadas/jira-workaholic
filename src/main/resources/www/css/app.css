@@ -1,0 +1,20 @@
+body {
+    padding-top: 60px;
+    padding-bottom: 40px;
+}
+.sidebar-nav {
+    padding: 9px 0;
+}
+.project {
+    cursor: pointer;
+    margin: 10px;
+}
+.issue-event {
+    cursor: pointer
+}
+p.issue-text {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+    text-overflow: ellipsis;
+}
