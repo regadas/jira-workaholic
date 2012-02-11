@@ -1,38 +1,36 @@
 package eu.regadas.jira
 
-import eu.regadas.model._
+import eu.regadas._
+import model._
 import java.net.URL
 import com.atlassian.jira.rpc.soap.client._
 
-object Session {
-  private val url = sys.env.get("JIRA_WS") match {
-    case Some(url) => new java.net.URL(url)
-    case _ => throw new Exception("JIRA_WS env variable was not set")
-  }
-  lazy val service = (new JiraSoapServiceServiceLocator).getJirasoapserviceV2(url)
-}
+case class Client(service: JiraSoapService) {
 
-object Client {
+  def this(url: URL) =
+    this((new JiraSoapServiceServiceLocator).getJirasoapserviceV2(url))
 
-  def login(user: String, password: String) = Session.service.login(user, password)
-  def user(token: String, username: String) = Session.service.getUser(token, username)
-
-  object Issue {
-    def list(token: String, username: String, project: String, max: Option[Int] = None): List[Issue] =
-      Session.service.getIssuesFromJqlSearch(token, "project = \"%s\" AND assignee = \"%s\"" format (project, username), max.getOrElse(20)).toList
-
-    def worklogs(token: String, username: String, issue: String): List[WorkLog] =
-      (Session.service.getWorklogs(token, issue) filter { wl => wl.getAuthor == username } toList) map { remote => WorkLog(issue, remote) }
-  }
+  def login(user: String, password: String) = new ClientToken(service.login(user, password), user)
+  def user(auth: ClientToken) = service.getUser(auth.token, auth.user)
 
   object Project {
 
-    def list(token: String): List[Project] = Session.service.getProjectsNoSchemes(token)
+    def list(auth: ClientToken): List[Project] = service.getProjectsNoSchemes(auth.token).toList
 
-    def worklogs(token: String, username: String, project: String, max: Option[Int] = None): List[WorkLog] =
-      Issue.list(token, username, project, max) flatMap { issue =>
-        Issue.worklogs(token, username, issue.key)
+    def worklogs(auth: ClientToken, project: String, max: Option[Int] = None): List[WorkLog] =
+      Issue.list(auth, project, max) flatMap { issue =>
+        Issue.worklogs(auth, issue.key)
       }
   }
 
+  object Issue {
+    def list(auth: ClientToken, project: String, max: Option[Int] = None): List[Issue] =
+      service.getIssuesFromJqlSearch(auth.token, "project = \"%s\" AND assignee = \"%s\"" format (project, auth.user), max.getOrElse(20)).toList
+
+    def worklogs(auth: ClientToken, issue: String): List[WorkLog] =
+      (service.getWorklogs(auth.token, issue) filter { wl => wl.getAuthor == auth.user } toList) map { remote => WorkLog(issue, remote) }
+  }
+
 }
+
+object Client extends Client(new URL(Props.get("JIRA_WS")))

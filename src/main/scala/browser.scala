@@ -30,7 +30,7 @@ object Browser extends Template {
           <li class="nav-header">Projects</li>
           <div>
             {
-              Client.Project.list(rt.value) map { p =>
+              Client.Project.list(rt) map { p =>
                 <li class="project" data-key={ p.key }>
                   <i class="icon-plus-sign"/>{ p.name }<a href={ p.url }>[Jira Link]</a>
                   <ul style="display: none;"></ul>
@@ -74,7 +74,7 @@ object Browser extends Template {
   def authentication: Cycle.Intent[Any, Any] = {
     case POST(Path("/login") & Params(User(user) & Password(password))) => {
       try {
-        ResponseCookies(Cookie("token", ClientToken(Client.login(user, password), user).toCookieString)) ~> Redirect("/")
+        ResponseCookies(Cookie("token", Client.login(user, password).toCookieString)) ~> Redirect("/")
       } catch { case _ => Redirect("/") }
     }
 
@@ -85,7 +85,7 @@ object Browser extends Template {
   def projects: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/projects")) => CookieToken(req) match {
       case Some(rt) =>
-        JsonContent ~> Json(Client.Project.list(rt.value))
+        JsonContent ~> Json(Client.Project.list(rt))
       case _ => Forbidden
     }
     case req @ GET(Path(Seg("projects" :: project :: "issues" :: Nil)) & Params(params)) => CookieToken(req) match {
@@ -93,7 +93,7 @@ object Browser extends Template {
         val expected = for {
           max <- lookup("max") is
             int { _ + " is not an integer" }
-        } yield JsonContent ~> Json(Client.Issue.list(rt.value, rt.user, project, max))
+        } yield JsonContent ~> Json(Client.Issue.list(rt, project, max))
         expected(params) orFail { fails => BadRequest }
       case _ => Forbidden
     }
@@ -102,7 +102,7 @@ object Browser extends Template {
         val expected = for {
           max <- lookup("max") is
             int { _ + " is not an integer" }
-        } yield JsonContent ~> Json(Client.Project.worklogs(rt.value, rt.user, project, max))
+        } yield JsonContent ~> Json(Client.Project.worklogs(rt, project, max))
         expected(params) orFail { fails => BadRequest }
       case _ => Forbidden
     }
@@ -111,7 +111,7 @@ object Browser extends Template {
   def issues: Cycle.Intent[Any, Any] = {
 
     case req @ GET(Path(Seg("issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(Client.Issue.worklogs(rt.value, rt.user, issue))
+      case Some(rt) => JsonContent ~> Json(Client.Issue.worklogs(rt, issue))
       case _ => Forbidden
     }
 

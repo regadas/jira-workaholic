@@ -3,8 +3,8 @@ package eu.regadas
 import unfiltered.Cookie
 import unfiltered.request.{Cookies, HttpRequest}
 
-case class ClientToken(value: String, user: String) {
-  def toCookieString = "%s|%s" format(value, user)
+case class ClientToken(token: String, user: String) {
+  def toCookieString = "%s|%s" format(token, user)
 }
 
 object ClientToken {
@@ -23,4 +23,5 @@ object CookieToken {
     }
   }
   def apply[T](r: HttpRequest[T]) = unapply(r)
+
 }
