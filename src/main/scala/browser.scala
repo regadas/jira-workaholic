@@ -2,6 +2,7 @@ package eu.regadas
 
 import eu.regadas.model._
 import unfiltered._
+import unfiltered.netty._
 import unfiltered.request._
 import unfiltered.response._
 import unfiltered.Cookie
@@ -10,8 +11,16 @@ import java.net.URL
 import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import com.weiglewilczek.slf4s._
 
-object Browser extends Template {
+object Browser {
+  /** Paths for which we care not */
+  def trapdoor: Cycle.Intent[Any, Any] = {
+    case GET(Path("/favicon.ico")) => NotFound
+  }
+}
+
+object JiraWorkAholic extends cycle.Plan with cycle.ThreadPool with JiraWorkAholicErrorResponse with Template with Logging {
 
   import QParams._
 
@@ -19,11 +28,8 @@ object Browser extends Template {
   object Password extends Params.Extract("password", Params.first ~> Params.nonempty)
   object WorkLog extends Params.Extract("worklog", Params.first ~> Params.nonempty)
 
-  /** Paths for which we care not */
-  def trapdoor: Cycle.Intent[Any, Any] = {
-    case GET(Path("/favicon.ico")) => NotFound
-  }
-  
+  def intent = authentication orElse home orElse projects orElse issues
+
   lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
   def home: Cycle.Intent[Any, Any] = {
@@ -42,32 +48,32 @@ object Browser extends Template {
             }
           </div>)(<div class="row-fluid">
                     <div id="calendar"></div>
-                      <div id="myModal" class="modal fade" style="display: none;">
-                        <div class="modal-header">
-                          <a class="close" data-dismiss="modal">×</a>
-                          <h3>Add Issue WorkLog</h3>
-                        </div>
-                        <div class="modal-body">
-                          <fieldset>
-                            <div class="control-group">
-                              <label for="select01" class="control-label">Start Time</label>
-                              <div class="controls">
-                                <input type="text" class="time ui-timepicker-input" id="start-event" autocomplete="off"/>
-                              </div>
-                            </div>
-                            <div class="control-group">
-                              <label for="select02" class="control-label">End Time</label>
-                              <div class="controls">
-                                <input type="text" class="time ui-timepicker-input" id="end-event" autocomplete="off" />
-                              </div>
-                            </div>
-                          </fieldset>
-                        </div>
-                        <div class="modal-footer">
-                          <a id="add" href="#" class="btn btn-primary">Add</a>
-                          <a href="#" class="btn" data-dismiss="modal">Close</a>
-                        </div>
+                    <div id="myModal" class="modal fade" style="display: none;">
+                      <div class="modal-header">
+                        <a class="close" data-dismiss="modal">×</a>
+                        <h3>Add Issue WorkLog</h3>
                       </div>
+                      <div class="modal-body">
+                        <fieldset>
+                          <div class="control-group">
+                            <label for="select01" class="control-label">Start Time</label>
+                            <div class="controls">
+                              <input type="text" class="time ui-timepicker-input" id="start-event" autocomplete="off"/>
+                            </div>
+                          </div>
+                          <div class="control-group">
+                            <label for="select02" class="control-label">End Time</label>
+                            <div class="controls">
+                              <input type="text" class="time ui-timepicker-input" id="end-event" autocomplete="off"/>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                      <div class="modal-footer">
+                        <a id="add" href="#" class="btn btn-primary">Add</a>
+                        <a href="#" class="btn" data-dismiss="modal">Close</a>
+                      </div>
+                    </div>
                   </div>)
       case _ => index
     }
@@ -77,6 +83,11 @@ object Browser extends Template {
   def authentication: Cycle.Intent[Any, Any] = {
     case POST(Path("/login") & Params(User(user) & Password(password))) => {
       try {
+
+        Db.collection("users") { c =>
+
+        }
+
         ResponseCookies(Cookie("token", api.login(user, password).toCookieString)) ~> Redirect("/")
       } catch { case _ => Redirect("/") }
     }
@@ -126,5 +137,4 @@ object Browser extends Template {
     }
 
   }
-
 }

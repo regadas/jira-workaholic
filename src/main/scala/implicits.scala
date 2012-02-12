@@ -8,9 +8,8 @@ import org.joda.time.DateTime
 case class Project(key: String, name: String, url: String)
 
 object Project {
-
   implicit def fromRemote(remote: RemoteProject) = new Project(remote.getKey, remote.getName, remote.getUrl)
-
+  
   implicit def projectToJson(project: Project) = ("name" -> project.name) ~ ("key" -> project.key)
 
   implicit def fromListRemote(remotes: List[RemoteProject]) = remotes map (fromRemote(_))
@@ -21,13 +20,11 @@ case class Issue(key: String, summary: String) {
 }
 
 object Issue {
-
   implicit def fromRemote(remote: RemoteIssue) = new Issue(remote.getKey, remote.getSummary)
-
+  
   implicit def issueToJson(issue: Issue) = ("summary" -> issue.summary) ~ ("key" -> issue.key) ~ ("url" -> issue.url)
-
+  
   implicit def fromListRemote(remotes: List[RemoteIssue]) = remotes map (fromRemote(_))
-
 }
 
 case class WorkLog(title: String, spent: String, spentInSeconds: Long, start: DateTime) {
