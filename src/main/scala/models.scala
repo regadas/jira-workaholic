@@ -33,20 +33,21 @@ object Issue {
     remotes map (fromRemote(_))
 }
 
-case class WorkLog(title: String, spentInSeconds: Long, start: DateTime) {
+case class WorkLog(id: Option[String], project: String, issue: String, spentInSeconds: Long, start: DateTime, created: DateTime) {
 
   lazy val end = start.plus(spentInSeconds * 1000)
 
-  private def toDBObject(user: String, projectKey: String, issueKey: String) = DBObject(
+  private def toDBObject(user: String) = DBObject(
+    "id" -> this.id,
     "user" -> user,
-    "project" -> projectKey,
-    "issue" -> issueKey,
-    "title" -> this.title,
+    "project" -> this.project,
+    "issue" -> this.issue,
     "spentInSeconds" -> this.spentInSeconds,
-    "start" -> this.start)
+    "start" -> this.start,
+    "created" -> this.created)
 
-  def cache(user: String, projectKey: String, issueKey: String) = collection("worklogs") { coll =>
-    coll += this.toDBObject(user, projectKey, issueKey)
+  def cache(user: String) = collection("worklogs") { coll =>
+    coll += this.toDBObject(user)
   }
 }
 
@@ -54,8 +55,13 @@ object WorkLog {
 
   private val DATE_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
 
-  def apply(issueKey: String, remote: RemoteWorklog) =
-    new WorkLog(issueKey, remote.getTimeSpentInSeconds, new DateTime(remote.getStartDate))
+  def apply(project: String, issue: String, remote: RemoteWorklog) =
+    new WorkLog(Option(remote.getId), 
+        project: String, 
+        issue, 
+        remote.getTimeSpentInSeconds, 
+        new DateTime(remote.getStartDate), 
+        new DateTime(remote.getCreated))
 
   def cached(user: String): Boolean = collection("worklogs") { coll =>
     coll.find(DBObject("user" -> user)).size > 0
@@ -73,11 +79,19 @@ object WorkLog {
     for { x <- coll.find(DBObject("user" -> user, "project" -> projectKey)) } yield x
   }
 
-  implicit def worklogToJson(worklog: WorkLog) = ("title" -> worklog.title) ~
+  implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~ 
+    ("title" -> worklog.issue) ~
+    ("project" -> worklog.project) ~
     ("start" -> DATE_FORMAT.print(worklog.start)) ~
     ("end" -> DATE_FORMAT.print(worklog.end)) ~
+    ("created" -> worklog.created.toDate.getTime) ~
     ("allDay" -> false)
 
   implicit val dbObjectToWorkLog = (obj: DBObject) =>
-    WorkLog(obj.getAs[String]("title").get, obj.getAs[Long]("spentInSeconds").get, obj.getAs[DateTime]("start").get)
+    WorkLog(obj.getAs[String]("id"),
+      obj.getAs[String]("project").get,
+      obj.getAs[String]("issue").get,
+      obj.getAs[Long]("spentInSeconds").get,
+      obj.getAs[DateTime]("start").get,
+      obj.getAs[DateTime]("created").get)
 }

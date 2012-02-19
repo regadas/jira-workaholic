@@ -124,7 +124,7 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
 
   def issues: Cycle.Intent[Any, Any] = {
     case req @ GET(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(api.issue.worklogs(rt, issue))
+      case Some(rt) => JsonContent ~> Json(api.issue.worklogs(rt, project, issue))
       case _ => Forbidden
     }
     case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
@@ -132,11 +132,13 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
         import net.liftweb.json._
         val json = parse(Body.string(req))
         for {
+          JField("created", JInt(createdTime)) <- json
           JField("start", JInt(startTime)) <- json
           JField("end", JInt(endTime)) <- json
         } yield {
           val start = new DateTime(startTime.toLong)
-          model.WorkLog(issue, (endTime - startTime).toLong / 1000, start).cache(rt.user, project, issue)
+          val created = new DateTime(createdTime.toLong)
+          model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).cache(rt.user)
         }
         JsonContent ~> Ok
       case _ => Forbidden
