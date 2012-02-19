@@ -77,6 +77,7 @@ $('.project').live 'click', (e) ->
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
   event.color = 'red'
+  event.created = new Date()
   start = $("#start-event").val().split ':'
   end = $("#end-event").val().split ':'
   event.start.setHours start[0]
@@ -90,6 +91,7 @@ $('#add').live 'click', (e) ->
   $.post "/projects/#{event.project}/issues/#{event.title}/worklog", JSON.stringify({
     start: event.start.getTime()
     end: event.end.getTime()
+    created: event.created.getTime()
   }), (data) ->
     calendar.fullCalendar 'renderEvent', event, true
   $('#myModal').modal 'toggle'
@@ -103,7 +105,6 @@ $("#end-event").timepicker
   scrollDefaultNow: true
   step: 15
 
-alert "lol"
 render_calendar []
   
 

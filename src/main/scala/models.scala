@@ -37,8 +37,7 @@ case class WorkLog(id: Option[String], project: String, issue: String, spentInSe
 
   lazy val end = start.plus(spentInSeconds * 1000)
 
-  private def toDBObject(user: String) = DBObject(
-    "id" -> this.id,
+  private def toDBObject(user: String) = DBObject("id" -> this.id,
     "user" -> user,
     "project" -> this.project,
     "issue" -> this.issue,
@@ -56,12 +55,12 @@ object WorkLog {
   private val DATE_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
 
   def apply(project: String, issue: String, remote: RemoteWorklog) =
-    new WorkLog(Option(remote.getId), 
-        project: String, 
-        issue, 
-        remote.getTimeSpentInSeconds, 
-        new DateTime(remote.getStartDate), 
-        new DateTime(remote.getCreated))
+    new WorkLog(Option(remote.getId),
+      project: String,
+      issue,
+      remote.getTimeSpentInSeconds,
+      new DateTime(remote.getStartDate),
+      new DateTime(remote.getCreated))
 
   def cached(user: String): Boolean = collection("worklogs") { coll =>
     coll.find(DBObject("user" -> user)).size > 0
@@ -79,7 +78,7 @@ object WorkLog {
     for { x <- coll.find(DBObject("user" -> user, "project" -> projectKey)) } yield x
   }
 
-  implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~ 
+  implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~
     ("title" -> worklog.issue) ~
     ("project" -> worklog.project) ~
     ("start" -> DATE_FORMAT.print(worklog.start)) ~
