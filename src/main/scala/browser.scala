@@ -20,7 +20,7 @@ object Browser {
   }
 }
 
-object JiraWorkAholic extends cycle.Plan with cycle.ThreadPool with JiraWorkAholicErrorResponse with Template with Logging {
+object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAholicErrorResponse with Template with Logging {
 
   import QParams._
 

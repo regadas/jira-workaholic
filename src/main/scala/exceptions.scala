@@ -5,20 +5,21 @@ import com.atlassian.jira.rpc.soap.client.RemoteAuthenticationException
 import org.jboss.netty.channel._
 import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.buffer.ChannelBuffers
+import com.weiglewilczek.slf4s.Logging
 
-trait JiraWorkAholicErrorResponse { self: ExceptionHandler =>
+trait JiraWorkAholicErrorResponse extends Logging { self: ExceptionHandler =>
   def onException(ctx: ChannelHandlerContext, t: Throwable) {
     val ch = ctx.getChannel
     if (ch.isOpen) try {
       t match {
         case e: RemoteAuthenticationException =>
-          System.err.println("authentication exception")
+          logger.warn("authentication exception")
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED)
           res.setStatus(HttpResponseStatus.FOUND)
           res.setHeader(HttpHeaders.Names.LOCATION, "/logout")
           ch.write(res).addListener(ChannelFutureListener.CLOSE)
         case unknown =>
-          System.err.println("Exception caught handling request: %s" format unknown.getMessage)
+          logger.error("Exception caught handling request: %s" format unknown.getMessage)
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)
           res.setContent(ChannelBuffers.copiedBuffer("Internal Server Error".getBytes("utf-8")))
           ch.write(res).addListener(ChannelFutureListener.CLOSE)
