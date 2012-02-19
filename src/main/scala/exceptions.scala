@@ -12,6 +12,7 @@ trait JiraWorkAholicErrorResponse { self: ExceptionHandler =>
     if (ch.isOpen) try {
       t match {
         case e: RemoteAuthenticationException =>
+          System.err.println("authentication exception")
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED)
           res.setStatus(HttpResponseStatus.FOUND)
           res.setHeader(HttpHeaders.Names.LOCATION, "/logout")

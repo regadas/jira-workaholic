@@ -1,6 +1,5 @@
 package eu.regadas
 
-import eu.regadas.model._
 import unfiltered._
 import unfiltered.netty._
 import unfiltered.request._
@@ -12,6 +11,7 @@ import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import com.weiglewilczek.slf4s._
+import net.liftweb.json.JsonAST.JObject
 
 object Browser {
   /** Paths for which we care not */
@@ -28,7 +28,7 @@ object JiraWorkAholic extends cycle.Plan with cycle.ThreadPool with JiraWorkAhol
   object Password extends Params.Extract("password", Params.first ~> Params.nonempty)
   object WorkLog extends Params.Extract("worklog", Params.first ~> Params.nonempty)
 
-  def intent = authentication orElse home orElse projects orElse issues
+  def intent = authentication orElse home orElse projects orElse issues orElse cache
 
   lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
@@ -123,18 +123,30 @@ object JiraWorkAholic extends cycle.Plan with cycle.ThreadPool with JiraWorkAhol
   }
 
   def issues: Cycle.Intent[Any, Any] = {
-
-    case req @ GET(Path(Seg("issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
+    case req @ GET(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(api.issue.worklogs(rt, issue))
       case _ => Forbidden
     }
-
-    case req @ POST(Path(Seg("issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
+    case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
-        println(Body.string(req))
+        import net.liftweb.json._
+        val json = parse(Body.string(req))
+        for {
+          JField("start", JInt(startTime)) <- json
+          JField("end", JInt(endTime)) <- json
+        } yield {
+          val start = new DateTime(startTime.toLong)
+          model.WorkLog(issue, (endTime - startTime).toLong / 1000, start).cache(rt.user, project, issue)
+        }
         JsonContent ~> Ok
       case _ => Forbidden
     }
+  }
 
+  def cache: Cycle.Intent[Any, Any] = {
+    case req @ GET(Path(Seg("cached" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
+      case Some(rt) => JsonContent ~> Json(model.WorkLog.cachedByProject(rt.user, project).toList)
+      case _ => Forbidden
+    }
   }
 }

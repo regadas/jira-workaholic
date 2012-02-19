@@ -1,4 +1,4 @@
-issue = "{{#issues}}<li><span class='label label-info issue-event'data-key='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
+issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-key='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
 issue_template = Hogan.compile(issue)
 calendar = $('#calendar')
 
@@ -25,7 +25,9 @@ render_calendar = (events) ->
 
 make_droppable = (elems) ->
   elems.each () ->
-    $(this).data 'eventObject', title: $.trim($(this).text())
+    $(this).data 'eventObject', 
+      title: $.trim($(this).data('key'))
+      project: $(this).data('project')
     $(this).draggable
       zIndex: 999,
       revert: true,
@@ -35,16 +37,24 @@ $('.issue-text').live 'hover', (e) ->
   $(this).tooltip 'show'
 
 $('.project').live 'click', (e) ->
+  $('.project').removeClass 'active'
+  $(this).addClass 'active'
   $('.active-issues').hide()
   $('.active-issues').removeClass 'active-issues'
-  ul = $(this).find 'ul'
   
-  $.getJSON "/projects/#{$(this).data('key')}/issues", (data) ->
+  ul = $(this).find 'ul'
+  project = $(this).data('key')
+  $.getJSON "/projects/#{project}/issues", (data) ->
+    data.map (e) ->
+      e.project = project
     ul.addClass('active-issues').html(issue_template.render({ issues: data })).show()
     make_droppable $('.issue-event')
-    
-  $.getJSON "/projects/#{$(this).data('key')}/worklog", (data) ->
-    render_calendar data
+  
+  $.getJSON "/cached/#{project}/worklog", (cached) ->
+    cached.map (e) ->
+      e.color = 'red' 
+    $.getJSON "/projects/#{project}/worklog", (data) ->
+      render_calendar data.concat(cached)
     
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
@@ -58,12 +68,14 @@ $('#add').live 'click', (e) ->
   if event.end < event.start
     event.end.setDate(event.start.getDate() + 1)
   
-  $.post "/issues/#{event.title}/worklog", {
-    start: event.start.toJSON()
-    end: event.end.toJSON()
-  }, (data) ->
+  event.color = 'red'
+  
+  $.post "/projects/#{event.project}/issues/#{event.title}/worklog", JSON.stringify({
+    start: event.start.getTime()
+    end: event.end.getTime()
+  }), (data) ->
     calendar.fullCalendar 'renderEvent', event, true
-    true
+  $('#myModal').modal 'toggle'
 
 $("#start-event").timepicker
   timeFormat: 'G:i'
@@ -73,8 +85,8 @@ $("#end-event").timepicker
   timeFormat: 'G:i'
   scrollDefaultNow: true
   step: 15
-render_calendar([])
 
+render_calendar []
   
 
 

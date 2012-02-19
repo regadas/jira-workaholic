@@ -21,7 +21,6 @@ case class Api(url: URL) extends Client(url) with Logging {
   }
 
   object project {
-
     def list(auth: ClientToken): List[Project] = Clock("jira project list", logger) {
       service.getProjectsNoSchemes(auth.token).toList
     }
