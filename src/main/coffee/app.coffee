@@ -10,10 +10,28 @@ render_calendar = (events) ->
           left: 'prev,next today'
           center: 'title'
           right: 'month,agendaWeek,agendaDay'
+      allDayDefault: false
       editable: true
       droppable: true
-      select: (start, end, allDay) ->
-        alert "LOL"
+      eventDrop: (event,dayDelta,minuteDelta,allDay,revertFunc) ->
+        alert(
+            event.title + " was moved " +
+            dayDelta + " days and " +
+            minuteDelta + " minutes."
+        )
+        if allDay
+          alert("Event is now all-day");
+        else
+          alert("Event has a time-of-day")
+        if !confirm("Are you sure about this change?")
+          revertFunc()
+      eventClick: (calEvent, jsEvent, view) ->
+
+        alert('Event: ' + calEvent.project);
+        alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
+        alert('View: ' + view.name);
+        $(this).css('border-color', 'black');
+        
       drop: (date, allDay) ->
           original = $(this).data 'eventObject'
           copy = $.extend {}, original
@@ -58,6 +76,7 @@ $('.project').live 'click', (e) ->
     
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
+  event.color = 'red'
   start = $("#start-event").val().split ':'
   end = $("#end-event").val().split ':'
   event.start.setHours start[0]
@@ -67,8 +86,6 @@ $('#add').live 'click', (e) ->
   
   if event.end < event.start
     event.end.setDate(event.start.getDate() + 1)
-  
-  event.color = 'red'
   
   $.post "/projects/#{event.project}/issues/#{event.title}/worklog", JSON.stringify({
     start: event.start.getTime()
@@ -86,6 +103,7 @@ $("#end-event").timepicker
   scrollDefaultNow: true
   step: 15
 
+alert "lol"
 render_calendar []
   
 
