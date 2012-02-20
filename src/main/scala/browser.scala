@@ -7,11 +7,11 @@ import unfiltered.response._
 import unfiltered.Cookie
 import jira._
 import java.net.URL
-import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import com.weiglewilczek.slf4s._
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 
 object Browser {
   /** Paths for which we care not */
@@ -83,11 +83,6 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
   def authentication: Cycle.Intent[Any, Any] = {
     case POST(Path("/login") & Params(User(user) & Password(password))) => {
       try {
-
-        Db.collection("users") { c =>
-
-        }
-
         ResponseCookies(Cookie("token", api.login(user, password).toCookieString)) ~> Redirect("/")
       } catch { case _ => Redirect("/") }
     }
@@ -129,7 +124,6 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
     }
     case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
-        import net.liftweb.json._
         val json = parse(Body.string(req))
         for {
           JField("created", JInt(createdTime)) <- json
@@ -140,6 +134,15 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
           val created = new DateTime(createdTime.toLong)
           model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).cache(rt.user)
         }
+        JsonContent ~> Ok
+      case _ => Forbidden
+    }
+    case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: "delete" :: Nil))) => CookieToken(req) match {
+      case Some(rt) =>
+        val json = parse(Body.string(req))
+        for {
+          JField("created", JInt(createdTime)) <- json
+        } yield model.WorkLog.evict(rt.user, project, issue, new DateTime(createdTime.toLong))
         JsonContent ~> Ok
       case _ => Forbidden
     }

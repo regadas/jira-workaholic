@@ -78,6 +78,13 @@ object WorkLog {
     for { x <- coll.find(DBObject("user" -> user, "project" -> projectKey)) } yield x
   }
 
+  def evict(user: String, project: String, issue: String, created: DateTime) = collection("worklogs") { coll =>
+    coll.findOne(DBObject("user" -> user,
+      "project" -> project,
+      "issue" -> issue,
+      "created" -> created)) map { wl => coll -= wl }
+  }
+
   implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~
     ("title" -> worklog.issue) ~
     ("project" -> worklog.project) ~
