@@ -29,7 +29,7 @@ render_calendar = (events) ->
         #TODO: confirm dialog should be temporary
         if confirm("Delete this worklog?")
           $.post "/projects/#{event.project}/issues/#{event.issue}/worklog/delete", JSON.stringify({
-            created: event.created.getTime
+            created: event.created
           }), (data) ->
             calendar.fullCalendar 'removeEvents', (object) ->
               object.created == event.created

@@ -88,10 +88,11 @@ object WorkLog {
   implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~
     ("title" -> worklog.issue) ~
     ("project" -> worklog.project) ~
+    ("issue" -> worklog.issue) ~
+    // FIXME: DateTime conversions
     ("start" -> DATE_FORMAT.print(worklog.start)) ~
     ("end" -> DATE_FORMAT.print(worklog.end)) ~
-    ("created" -> worklog.created.toDate.getTime) ~
-    ("allDay" -> false)
+    ("created" -> worklog.created.toDate.getTime)
 
   implicit val dbObjectToWorkLog = (obj: DBObject) =>
     WorkLog(obj.getAs[String]("id"),
