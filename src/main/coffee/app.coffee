@@ -41,6 +41,7 @@ render_calendar = (events) ->
           copy.allDay = false
           $('#myModal').data 'eventObject', copy
           $('#myModal').modal 'toggle'
+          $('#notification').show()
 
 make_droppable = (elems) ->
   elems.each () ->
@@ -76,7 +77,8 @@ $('.project').live 'click', (e) ->
     cached.map (e) ->
       e.color = 'red' 
     $.getJSON "/projects/#{project}/worklog", (data) ->
-      render_calendar data.concat(cached)
+      data.concat(cached).map (e) ->
+        calendar.fullCalendar 'renderEvent', e
     
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
@@ -110,6 +112,9 @@ $("#end-event").timepicker
   step: 15
 
 render_calendar []
-  
+
+$.getJSON "/cached", (data) ->
+  if data.cached
+    $('#notification').show()
 
 

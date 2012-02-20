@@ -47,6 +47,7 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
               }
             }
           </div>)(<div class="row-fluid">
+                    <div id="notification" class="alert alert-info" style="display: none;">Hey, you have unsaved changes!</div>
                     <div id="calendar"></div>
                     <div id="myModal" class="modal fade" style="display: none;">
                       <div class="modal-header">
@@ -149,6 +150,10 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
   }
 
   def cache: Cycle.Intent[Any, Any] = {
+    case req @ GET(Path(Seg("cached" :: Nil))) => CookieToken(req) match {
+      case Some(rt) => JsonContent ~> Json(("cached" -> model.WorkLog.cached(rt.user)))
+      case _ => Forbidden
+    }
     case req @ GET(Path(Seg("cached" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(model.WorkLog.cachedByProject(rt.user, project).toList)
       case _ => Forbidden
