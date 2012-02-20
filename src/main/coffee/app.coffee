@@ -1,4 +1,4 @@
-issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-key='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
+issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-issue='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
 issue_template = Hogan.compile(issue)
 calendar = $('#calendar')
 
@@ -25,13 +25,14 @@ render_calendar = (events) ->
           alert("Event has a time-of-day")
         if !confirm("Are you sure about this change?")
           revertFunc()
-      eventClick: (calEvent, jsEvent, view) ->
-
-        alert('Event: ' + calEvent.project);
-        alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
-        alert('View: ' + view.name);
-        $(this).css('border-color', 'black');
-        
+      eventClick: (event, jsEvent, view) ->
+        #TODO: confirm dialog should be temporary
+        if confirm("Delete this worklog?")
+          $.post "/projects/#{event.project}/issues/#{event.issue}/worklog/delete", JSON.stringify({
+            created: event.created.getTime
+          }), (data) ->
+            calendar.fullCalendar 'removeEvents', (object) ->
+              object.created == event.created
       drop: (date, allDay) ->
           original = $(this).data 'eventObject'
           copy = $.extend {}, original
@@ -43,9 +44,12 @@ render_calendar = (events) ->
 
 make_droppable = (elems) ->
   elems.each () ->
+    project = $(this).data('project')
+    issue = $(this).data('issue')
     $(this).data 'eventObject', 
-      title: $.trim($(this).data('key'))
-      project: $(this).data('project')
+      title: $.trim(issue)
+      issue: issue
+      project: project
     $(this).draggable
       zIndex: 999,
       revert: true,
@@ -88,7 +92,7 @@ $('#add').live 'click', (e) ->
   if event.end < event.start
     event.end.setDate(event.start.getDate() + 1)
   
-  $.post "/projects/#{event.project}/issues/#{event.title}/worklog", JSON.stringify({
+  $.post "/projects/#{event.project}/issues/#{event.issue}/worklog", JSON.stringify({
     start: event.start.getTime()
     end: event.end.getTime()
     created: event.created.getTime()
