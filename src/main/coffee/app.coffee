@@ -1,5 +1,9 @@
 issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-issue='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
+info = "<div class='alert alert-info'>{{ message }}</div>"
+info_sync = "<div class='alert alert-info'>{{ message }}<a class='btn' href='{{ url }}'>Sync with JIRA</a></div>"
 issue_template = Hogan.compile(issue)
+info_message = Hogan.compile(info)
+info_sync_message = Hogan.compile(info_sync)
 calendar = $('#calendar')
 
 render_calendar = (events) ->
@@ -60,11 +64,8 @@ $('.issue-text').live 'hover', (e) ->
   $(this).tooltip 'show'
 
 $('.project').live 'click', (e) ->
-  $('.project').removeClass 'active'
-  $(this).addClass 'active'
   $('.active-issues').hide()
   $('.active-issues').removeClass 'active-issues'
-  
   ul = $(this).find 'ul'
   project = $(this).data('key')
   $.getJSON "/projects/#{project}/issues", (data) ->
@@ -78,7 +79,7 @@ $('.project').live 'click', (e) ->
       e.color = 'red' 
     $.getJSON "/projects/#{project}/worklog", (data) ->
       data.concat(cached).map (e) ->
-        calendar.fullCalendar 'renderEvent', e
+        calendar.fullCalendar 'renderEvent', e, true
     
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
@@ -115,6 +116,8 @@ render_calendar []
 
 $.getJSON "/cached", (data) ->
   if data.cached
-    $('#notification').show()
+    $('#messages').append info_sync_message.render({ 
+      message: "Hey! You have unsaved changes."
+    })
 
 

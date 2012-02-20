@@ -37,45 +37,47 @@ object JiraWorkAholic extends cycle.Plan with cycle.SynchronousExecution with Ji
       case Some(rt) => home(
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
           <li class="nav-header">Projects</li>
-          <div>
+          <ul class="nav nav-list">
             {
               api.project.list(rt) map { p =>
                 <li class="project" data-key={ p.key }>
-                  <i class="icon-plus-sign"/>{ p.name }<a href={ p.url }>[Jira Link]</a>
+                  <a href="#">
+                    <i class="icon-plus-sign"/>{ p.name }
+                  </a>
                   <ul style="display: none;"></ul>
                 </li>
               }
             }
-          </div>)(<div class="row-fluid">
-                    <div id="notification" class="alert alert-info" style="display: none;">Hey, you have unsaved changes!</div>
-                    <div id="calendar"></div>
-                    <div id="myModal" class="modal fade" style="display: none;">
-                      <div class="modal-header">
-                        <a class="close" data-dismiss="modal">×</a>
-                        <h3>Add Issue WorkLog</h3>
-                      </div>
-                      <div class="modal-body">
-                        <fieldset>
-                          <div class="control-group">
-                            <label for="select01" class="control-label">Start Time</label>
-                            <div class="controls">
-                              <input type="text" class="time ui-timepicker-input" id="start-event" autocomplete="off"/>
-                            </div>
-                          </div>
-                          <div class="control-group">
-                            <label for="select02" class="control-label">End Time</label>
-                            <div class="controls">
-                              <input type="text" class="time ui-timepicker-input" id="end-event" autocomplete="off"/>
-                            </div>
-                          </div>
-                        </fieldset>
-                      </div>
-                      <div class="modal-footer">
-                        <a id="add" href="#" class="btn btn-primary">Add</a>
-                        <a href="#" class="btn" data-dismiss="modal">Close</a>
-                      </div>
-                    </div>
-                  </div>)
+          </ul>)(<div class="row-fluid">
+                   <div id="messages"></div>
+                   <div id="calendar"></div>
+                   <div id="myModal" class="modal fade" style="display: none;">
+                     <div class="modal-header">
+                       <a class="close" data-dismiss="modal">×</a>
+                       <h3>Add Issue WorkLog</h3>
+                     </div>
+                     <div class="modal-body">
+                       <fieldset>
+                         <div class="control-group">
+                           <label for="select01" class="control-label">Start Time</label>
+                           <div class="controls">
+                             <input type="text" class="time ui-timepicker-input" id="start-event" autocomplete="off"/>
+                           </div>
+                         </div>
+                         <div class="control-group">
+                           <label for="select02" class="control-label">End Time</label>
+                           <div class="controls">
+                             <input type="text" class="time ui-timepicker-input" id="end-event" autocomplete="off"/>
+                           </div>
+                         </div>
+                       </fieldset>
+                     </div>
+                     <div class="modal-footer">
+                       <a id="add" href="#" class="btn btn-primary">Add</a>
+                       <a href="#" class="btn" data-dismiss="modal">Close</a>
+                     </div>
+                   </div>
+                 </div>)
       case _ => index
     }
 
