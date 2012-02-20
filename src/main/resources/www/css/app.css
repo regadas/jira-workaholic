@@ -5,10 +5,6 @@ body {
 .sidebar-nav {
     padding: 9px 0;
 }
-.project {
-    cursor: pointer;
-    margin: 10px;
-}
 .issue-event {
     cursor: pointer
 }
