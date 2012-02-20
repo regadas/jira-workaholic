@@ -63,7 +63,7 @@ object WorkLog {
       new DateTime(remote.getCreated))
 
   def cached(user: String): Boolean = collection("worklogs") { coll =>
-    coll.find(DBObject("user" -> user)).size > 0
+    coll.count(DBObject("user" -> user)) > 0
   }
 
   def cachedByUser(user: String): Iterator[WorkLog] = collection("worklogs") { coll =>
