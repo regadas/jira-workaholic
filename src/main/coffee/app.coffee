@@ -1,6 +1,6 @@
 issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-issue='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
 info = "<div class='alert alert-info'>{{ message }}</div>"
-warn_sync = "<div class='alert'><strong>Warning!</strong>{{ message }}<a class='btn btn-warning' href='{{ url }}'>Sync with JIRA</a></div>"
+warn_sync = "<div class='alert'><strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/state/sync'>Sync with JIRA</a></div>"
 issue_template = Hogan.compile(issue)
 info_message = Hogan.compile(info)
 warn_sync_message = Hogan.compile(warn_sync)
@@ -77,7 +77,7 @@ $('.project').live 'click', (e) ->
       ul.html(issue_template.render({ issues: data })).show()
       make_droppable $('.issue-event')
     
-    $.getJSON "/cached/#{project}/worklog", (cached) ->
+    $.getJSON "/state/#{project}/worklog", (cached) ->
       cached.map (e) ->
         e.color = 'red' 
       $.getJSON "/projects/#{project}/worklog", (data) ->
@@ -118,8 +118,8 @@ $("#end-event").timepicker
 
 render_calendar []
 
-$.getJSON "/cached", (data) ->
-  if data.cached
+$.getJSON "/state", (data) ->
+  if data.cache
     $('#messages').append warn_sync_message.render({ 
       message: "Hey! You have unsaved changes."
     })

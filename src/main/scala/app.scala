@@ -12,7 +12,8 @@ object Server {
       .handler(netty.cycle.Planify {
         Browser.trapdoor
       })
-      .handler(JiraWorkAholic)
+      .handler(Authentication)
+      .handler(Site)
       .run(s => a match {
        case a@Array(_*) if(a contains "-b") => util.Browser.open(s.url)
        case _ => ()

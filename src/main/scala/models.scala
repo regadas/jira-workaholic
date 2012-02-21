@@ -6,6 +6,7 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.DateTime
 import com.mongodb.casbah.Imports._
 import eu.regadas.Db._
+import java.util.Locale
 
 case class Project(key: String, name: String, url: String)
 
@@ -85,7 +86,16 @@ object WorkLog {
       "created" -> created)) map { wl => coll -= wl }
   }
 
-  implicit def worklogToJson(worklog: WorkLog) = ("id" -> worklog.id) ~
+  implicit val toRemoteWorklog = (wl: WorkLog) => {
+    val locale = Locale.ENGLISH
+    val log = new RemoteWorklog()
+    log.setStartDate(wl.start.toCalendar(locale))
+    log.setCreated(wl.created.toCalendar(locale))
+    log.setTimeSpentInSeconds(wl.spentInSeconds)
+    log
+  }
+  
+  implicit val worklogToJson = (worklog: WorkLog) => ("id" -> worklog.id) ~
     ("title" -> worklog.issue) ~
     ("project" -> worklog.project) ~
     ("issue" -> worklog.issue) ~

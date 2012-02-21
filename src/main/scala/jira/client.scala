@@ -39,4 +39,10 @@ case class Api(url: URL) extends Client(url) with Logging {
       (service.getWorklogs(auth.token, issue) filter { wl => wl.getAuthor == auth.user } toList) map { remote => WorkLog(project, issue, remote) }
     }
   }
+  
+  object worklog {
+    def add(auth: ClientToken, issue: String, worklog: WorkLog) = Clock("jira add worklog", logger) {
+      service.addWorklogAndAutoAdjustRemainingEstimate(auth.token, issue, worklog)
+    }
+  }
 }
