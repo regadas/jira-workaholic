@@ -7,6 +7,7 @@ import org.joda.time.DateTime
 import com.mongodb.casbah.Imports._
 import eu.regadas.Db._
 import java.util.Locale
+import org.joda.time.Period
 
 case class Project(key: String, name: String, url: String)
 
@@ -46,6 +47,11 @@ case class WorkLog(id: Option[String], project: String, issue: String, spentInSe
     "start" -> this.start,
     "created" -> this.created)
 
+  def spent = {
+    val period = new Period(this.spentInSeconds * 1000)
+    "%sw %sd %sh %sm" format (period.getWeeks, period.getDays, period.getHours, period.getMinutes)
+  }
+  
   def cache(user: String) = collection("worklogs") { coll =>
     coll += this.toDBObject(user)
   }
@@ -92,6 +98,7 @@ object WorkLog {
     log.setStartDate(wl.start.toCalendar(locale))
     log.setCreated(wl.created.toCalendar(locale))
     log.setTimeSpentInSeconds(wl.spentInSeconds)
+    log.setTimeSpent(wl.spent)
     log
   }
   

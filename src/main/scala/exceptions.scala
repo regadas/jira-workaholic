@@ -19,7 +19,7 @@ trait JiraWorkAholicErrorResponse extends Logging { self: ExceptionHandler =>
           res.setHeader(HttpHeaders.Names.LOCATION, "/logout")
           ch.write(res).addListener(ChannelFutureListener.CLOSE)
         case unknown =>
-          logger.error("Exception caught handling request: %s" format unknown.getMessage)
+          logger.error("Exception caught handling request: %s :%s" format (unknown.getMessage, unknown))
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)
           res.setContent(ChannelBuffers.copiedBuffer("Internal Server Error".getBytes("utf-8")))
           ch.write(res).addListener(ChannelFutureListener.CLOSE)

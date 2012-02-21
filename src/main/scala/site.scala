@@ -108,7 +108,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
       case _ => Forbidden
     }
   }
-  
+
   def update: Cycle.Intent[Any, Any] = {
     case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
@@ -141,16 +141,20 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
       case Some(rt) => JsonContent ~> Json(("cache" -> model.WorkLog.cached(rt.user)))
       case _ => Forbidden
     }
+    //TODO: move this method
     case req @ GET(Path(Seg("state" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(model.WorkLog.cachedByProject(rt.user, project).toList)
       case _ => Forbidden
     }
     case req @ GET(Path(Seg("state" :: "sync" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
-        model.WorkLog.cachedByUser(rt.user) map { wl =>
+        logger.debug("State sync for user %s" format rt.user)
+        model.WorkLog.cachedByUser(rt.user).foreach { wl =>
+          logger.debug("syncing worklog for %s" format wl.issue)
           api.worklog.add(rt, wl.issue, wl)
+          model.WorkLog.evict(rt.user, wl.project, wl.issue, wl.created)
         }
-        Ok
+        Ok ~> Redirect("/")
       case _ => Forbidden
     }
   }
