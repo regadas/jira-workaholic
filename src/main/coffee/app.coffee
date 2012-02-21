@@ -60,6 +60,13 @@ make_droppable = (elems) ->
       revert: true,
       revertDuration: 0
 
+check_state = () ->
+  $.getJSON "/state", (data) ->
+    if data.cache
+      $('#messages').append warn_sync_message.render({ 
+        message: "Hey! You have unsaved changes."
+      })
+
 $('.issue-text').live 'hover', (e) ->
   $(this).tooltip 'show'
 
@@ -105,6 +112,8 @@ $('#add').live 'click', (e) ->
     created: event.created.getTime()
   }), (data) ->
     calendar.fullCalendar 'renderEvent', event, true
+    
+  check_state()
   $('#myModal').modal 'toggle'
 
 $("#start-event").timepicker
@@ -117,11 +126,4 @@ $("#end-event").timepicker
   step: 15
 
 render_calendar []
-
-$.getJSON "/state", (data) ->
-  if data.cache
-    $('#messages').append warn_sync_message.render({ 
-      message: "Hey! You have unsaved changes."
-    })
-
-
+check_state()
