@@ -42,14 +42,14 @@ object Authentication extends cycle.Plan with cycle.SynchronousExecution with Ji
     case POST(Path("/login") & Params(User(user) & Password(password))) => {
       try {
         ResponseCookies(Cookie("token", api.login(user, password).toCookieString)) ~> Redirect("/")
-      } catch {
-        case unknown => 
-          println(unknown.getMessage)
-          Redirect("/")
-      }
+      } catch { case _ => Redirect("/") }
     }
-    case GET(Path("/logout")) =>
-      ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> Redirect("/")
+    case req @ GET(Path("/logout")) => CookieToken(req) match {
+      case Some(rt) =>
+        api.logout(rt)
+        ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> Redirect("/")
+      case _ => Forbidden ~> Redirect("/")
+    }
   }
 
 }

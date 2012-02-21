@@ -18,7 +18,9 @@ case class Api(url: URL) extends Client(url) with Logging {
     new ClientToken(service.login(user, password), user)
   }
 
-  def logout = Clock
+  def logout(auth: ClientToken) = Clock("jira logout") {
+    service.logout(auth.user)
+  }
 
   def user(auth: ClientToken) = Clock("jira user info") {
     service.getUser(auth.token, auth.user)
