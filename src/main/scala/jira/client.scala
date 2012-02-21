@@ -12,7 +12,7 @@ abstract class Client(val service: JiraSoapService) {
 
 case class Api(url: URL) extends Client(url) with Logging {
 
-  implicit override lazy val logger: Logger = logger
+  implicit val log: Logger = logger
 
   def login(user: String, password: String) = Clock("jira auth") {
     new ClientToken(service.login(user, password), user)

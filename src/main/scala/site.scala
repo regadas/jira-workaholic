@@ -76,9 +76,8 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
     case req @ GET(Path("/projects")) => CookieToken(req) match {
       case Some(rt) =>
         JsonContent ~> Json(api.project.list(rt))
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
-
   }
 
   def issues: Cycle.Intent[Any, Any] = {
@@ -89,7 +88,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
             int { _ + " is not an integer" }
         } yield JsonContent ~> Json(api.issue.list(rt, project, max))
         expected(params) orFail { fails => BadRequest }
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
   }
 
@@ -101,11 +100,11 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
             int { _ + " is not an integer" }
         } yield JsonContent ~> Json(api.project.worklogs(rt, project, max))
         expected(params) orFail { fails => BadRequest }
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
     case req @ GET(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(api.issue.worklogs(rt, project, issue))
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
   }
 
@@ -123,7 +122,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
           model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).cache(rt.user)
         }
         JsonContent ~> Ok
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
     case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: "delete" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
@@ -132,19 +131,19 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
           JField("created", JInt(createdTime)) <- json
         } yield model.WorkLog.evict(rt.user, project, issue, new DateTime(createdTime.toLong))
         JsonContent ~> Ok
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
   }
 
   def cache: Cycle.Intent[Any, Any] = {
     case req @ GET(Path(Seg("state" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(("cache" -> model.WorkLog.cached(rt.user)))
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
     //TODO: move this method
     case req @ GET(Path(Seg("state" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(model.WorkLog.cachedByProject(rt.user, project).toList)
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
     case req @ GET(Path(Seg("state" :: "sync" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
@@ -155,7 +154,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
           model.WorkLog.evict(rt.user, wl.project, wl.issue, wl.created)
         }
         Ok ~> Redirect("/")
-      case _ => Forbidden
+      case _ => Forbidden ~> Redirect("/")
     }
   }
 }
