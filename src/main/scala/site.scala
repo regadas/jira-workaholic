@@ -19,7 +19,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
-  def intent = (home /: Seq(projects, issues, worklogs, update, cache))(_ orElse _)
+  def intent = (home /: Seq(projects, issues, worklogs, update))(_ orElse _)
 
   def home: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/") & Cookies(c)) => CookieToken(req) match {
@@ -119,7 +119,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         } yield {
           val start = new DateTime(startTime.toLong)
           val created = new DateTime(createdTime.toLong)
-          model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).cache(rt.user)
+          model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).save(rt.user)
         }
         JsonContent ~> Ok
       case _ => Forbidden ~> Redirect("/")
@@ -129,7 +129,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         val json = parse(Body.string(req))
         for {
           JField("created", JInt(createdTime)) <- json
-        } yield model.WorkLog.evict(rt.user, project, issue, new DateTime(createdTime.toLong))
+        } yield model.WorkLog.remove(rt.user, project, issue, new DateTime(createdTime.toLong))
         JsonContent ~> Ok
       case _ => Forbidden ~> Redirect("/")
     }
@@ -137,12 +137,12 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   def cache: Cycle.Intent[Any, Any] = {
     case req @ GET(Path(Seg("state" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(("cache" -> model.WorkLog.cached(rt.user)))
+      case Some(rt) => JsonContent ~> Json(("cache" -> model.User.hasState(rt.user)))
       case _ => Forbidden ~> Redirect("/")
     }
     //TODO: move this method
     case req @ GET(Path(Seg("state" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(model.WorkLog.cachedByProject(rt.user, project).toList)
+      case Some(rt) => JsonContent ~> Json(model.WorkLog.findByProject(rt.user, project).toList)
       case _ => Forbidden ~> Redirect("/")
     }
     case req @ GET(Path(Seg("state" :: "sync" :: Nil))) => CookieToken(req) match {
