@@ -91,7 +91,30 @@ $('.project').live 'click', (e) ->
         calendar.fullCalendar 'removeEvents'
         data.concat(cached).map (e) ->
           calendar.fullCalendar 'renderEvent', e, true
-    
+
+# Consider using some sort of plugin here
+typeTimeout = null
+
+search = () ->
+  q = $.trim $("#q").val()
+  if q.length > 4
+    $.post "/search/issues", {query: q }, (data) ->
+      ul = $('#results').find('ul')
+      ul.empty()
+      ul.append(issue_template.render({ issues: data }))
+
+$("#q").keyup (e) ->
+  typeTimeout = setTimeout search, 500
+  
+$("#q").keydown (e) ->
+  clearTimeout typeTimeout
+  
+$("#q-form").live 'submit', (e) ->
+  e.preventDefault()
+  clearTimeout typeTimeout
+  search
+  false
+
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
   event.color = 'red'
@@ -120,6 +143,7 @@ $("#start-event").timepicker
   timeFormat: 'G:i'
   scrollDefaultNow: true
   step: 15
+  
 $("#end-event").timepicker
   timeFormat: 'G:i'
   scrollDefaultNow: true

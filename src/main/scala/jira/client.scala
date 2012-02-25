@@ -37,6 +37,10 @@ case class Api(url: URL) extends Client(url) with Logging {
   }
 
   object issue {
+    def search(auth: ClientToken, term: String, max: Int = 10): List[Issue] = Clock("search issues with term %s" format term) {
+      service.getIssuesFromTextSearchWithLimit(auth.token, term, 0, max).toList
+    }
+
     def list(auth: ClientToken, project: String, max: Option[Int] = None): List[Issue] = Clock("jira issue list") {
       service.getIssuesFromJqlSearch(auth.token, "project = \"%s\" AND assignee = \"%s\"" format (project, auth.user), max.getOrElse(20)).toList
     }

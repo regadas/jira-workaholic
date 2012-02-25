@@ -20,13 +20,19 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   implicit lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
-  def intent = (home /: Seq(projects, issues, worklogs, update, cache))(_ orElse _)
+  def intent = (home /: Seq(projects, issues, worklogs, update, cache, search))(_ orElse _)
 
   def home: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/") & Cookies(c)) => CookieToken(req) match {
       case Some(rt) => home(
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
-          <li class="nav-header">Projects</li>
+          <form id="q-form" class="form-search">
+            <input id="q" type="text" class="input-medium search-query"/>
+          </form>
+          <div id="results"><ul></ul></div>
+          <li class="nav-header">Favorite Issues</li>
+          <li class="nav-header">Favorite Projects</li>
+          <li class="nav-header">All Projects</li>
           <ul class="nav nav-list">
             {
               api.project.list(rt) map { p =>
@@ -34,7 +40,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
                   <a href="#">
                     <i class="icon-plus-sign"/>{ p.name }
                   </a>
-                  <ul style="display: none;"></ul>
+                  <ul></ul>
                 </li>
               }
             }
@@ -71,6 +77,20 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
       case _ => index
     }
 
+  }
+
+  def search: Cycle.Intent[Any, Any] = {
+    //FIXME: some problem in unfiltered with param extractor ....
+    case req @ POST(Path("/search/issues") & Params(params)) => CookieToken(req) match {
+      case Some(rt) =>
+        val expected = for {
+          query <- lookup("query") is
+            nonempty("query is empty") is
+            required("missing query")
+        } yield JsonContent ~> Json(api.issue.search(rt, query.get))
+        expected(params) orFail { fails => BadRequest }
+      case _ => Forbidden ~> Redirect("/")
+    }
   }
 
   def projects: Cycle.Intent[Any, Any] = {
