@@ -20,7 +20,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   implicit lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
-  def intent = (home /: Seq(projects, issues, worklogs, update))(_ orElse _)
+  def intent = (home /: Seq(projects, issues, worklogs, update, cache))(_ orElse _)
 
   def home: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/") & Cookies(c)) => CookieToken(req) match {
