@@ -5,6 +5,7 @@ import unfiltered.netty._
 import unfiltered.request._
 import unfiltered.response._
 import unfiltered.Cookie
+import model._
 import jira._
 import java.net.URL
 import org.joda.time.DateTime
@@ -17,7 +18,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   import QParams._
 
-  lazy val api = Api(new URL(Props.get("JIRA_WS")))
+  implicit lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
   def intent = (home /: Seq(projects, issues, worklogs, update))(_ orElse _)
 
@@ -142,17 +143,13 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
     }
     //TODO: move this method
     case req @ GET(Path(Seg("state" :: project :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(model.WorkLog.findByProject(rt.user, project).toList)
+      case Some(rt) => JsonContent ~> Json(model.WorkLog.listByProject(rt.user, project).toList)
       case _ => Forbidden ~> Redirect("/")
     }
     case req @ GET(Path(Seg("state" :: "sync" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
         logger.debug("State sync for user %s" format rt.user)
-        model.WorkLog.cachedByUser(rt.user).foreach { wl =>
-          logger.debug("syncing worklog for %s" format wl.issue)
-          api.worklog.add(rt, wl.issue, wl)
-          model.WorkLog.evict(rt.user, wl.project, wl.issue, wl.created)
-        }
+        User.sync(rt)
         Ok ~> Redirect("/")
       case _ => Forbidden ~> Redirect("/")
     }

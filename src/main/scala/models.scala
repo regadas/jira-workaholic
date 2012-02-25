@@ -2,17 +2,24 @@ package eu.regadas.model
 
 import net.liftweb.json.JsonDSL._
 import com.atlassian.jira.rpc.soap.client._
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.DateTime
 import com.mongodb.casbah.Imports._
+import eu.regadas._
 import eu.regadas.Db._
+import eu.regadas.jira._
 import java.util.Locale
-import org.joda.time.Period
-import com.mongodb.BasicDBList
+import org.joda.time.{ Period, DateTime }
+import org.joda.time.format.{ DateTimeFormat }
+import com.weiglewilczek.slf4s.Logging
 
-object User {
+object User extends Logging {
   def hasState(user: String): Boolean = collection(WorkLog.COLL_NAME) { coll =>
     coll.count(DBObject("user" -> user)) > 0
+  }
+
+  def sync(auth: ClientToken)(implicit client: Api) = WorkLog.listByUser(auth.user).foreach { wl =>
+    logger.debug("syncing worklog for %s" format wl.issue)
+    client.worklog.add(auth, wl.issue, wl)
+    WorkLog.remove(auth.user, wl.project, wl.issue, wl.created)
   }
 }
 
@@ -103,6 +110,14 @@ object WorkLog {
       "project" -> project,
       "issue" -> issue,
       "created" -> created))
+  }
+
+  def listByUser(user: String): Iterator[WorkLog] = collection(COLL_NAME) { coll =>
+    for { x <- coll.find(DBObject("user" -> user)) } yield x
+  }
+
+  def listByProject(user: String, key: String): Iterator[WorkLog] = collection(COLL_NAME) { coll =>
+    for { x <- coll.find(DBObject("user" -> user, "project" -> key)) } yield x
   }
 
   implicit val toRemoteWorklog = (wl: WorkLog) => {
