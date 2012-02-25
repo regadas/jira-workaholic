@@ -90,7 +90,7 @@ $('.project').live 'click', (e) ->
       $.getJSON "/projects/#{project}/worklog", (data) ->
         calendar.fullCalendar 'removeEvents'
         data.concat(cached).map (e) ->
-          calendar.fullCalendar 'renderEvent', e
+          calendar.fullCalendar 'renderEvent', e, true
     
 $('#add').live 'click', (e) ->
   event = $("#myModal").data 'eventObject'
@@ -113,8 +113,8 @@ $('#add').live 'click', (e) ->
   }), (data) ->
     calendar.fullCalendar 'renderEvent', event, true
     
-  check_state()
   $('#myModal').modal 'toggle'
+  check_state()
 
 $("#start-event").timepicker
   timeFormat: 'G:i'
