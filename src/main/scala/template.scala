@@ -62,6 +62,8 @@ trait Template {
           <script type="text/javascript" src="/js/jquery.js"></script>
           <script type="text/javascript" src="/js/jquery-ui.js"></script>
           <script type="text/javascript" src="/js/jquery.timepicker.min.js"></script>
+          <script type="text/javascript" src="/js/spin.min.js"></script>
+          <script type="text/javascript" src="/js/jquery.spin.js"></script>
           <script type="text/javascript" src="/js/hogan.js"></script>
           <script type="text/javascript" src="/js/fullcalendar.min.js"></script>
           <script type="text/javascript" src="/js/bootstrap.min.js"></script>

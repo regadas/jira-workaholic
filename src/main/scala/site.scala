@@ -28,10 +28,11 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
           <form id="q-form" class="form-search">
             <input id="q" type="text" class="input-medium search-query" placeholder="Search for Issues ..."/>
+            <div id="search-spinner"/>
           </form>
-          <div id="results"><ul class="nav nav-list" /></div>
+          <div id="results"><ul class="nav nav-list"/></div>
           <li class="nav-header">Favorite Issues</li>
-          <ul id="fav-issues" class="nav nav-list"><li id="empty-fav-issues">Drop here some issues</li></ul>
+          <ul id="fav-issues" class="nav nav-list"><li class="empty"><p>Drop here some issues</p></li></ul>
           <li class="nav-header">All Projects</li>
           <ul class="nav nav-list">
             {
@@ -45,6 +46,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
               }
             }
           </ul>)(<div class="row-fluid">
+                   <div id="work-spinner"/>
                    <div id="messages"></div>
                    <div id="calendar"></div>
                    <div id="myModal" class="modal fade" style="display: none;">

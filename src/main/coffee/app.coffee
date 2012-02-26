@@ -70,14 +70,22 @@ check_state = () ->
 $('#fav-issues').droppable
   drop: (event, ui) ->
     issue_dom = ui.draggable
-    $('#empty-fav-issues').remove()
-    rendered = $(issue_template.render
-      issues:
-        key: issue_dom.data('issue')
-        summary: issue_dom.data('summary')
-    )
-    make_droppable rendered.find('.issue-event')
-    $(this).append rendered
+    $(this).find('.empty').remove()
+    elems = $(this).find('li .issue-event')
+    exists = () ->
+      result = false
+      elems.each (e) ->
+        if $(this).data('issue') is issue_dom.data('issue')
+          result = true
+      result
+    if not exists()
+      rendered = $(issue_template.render
+        issues:
+          key: issue_dom.data('issue')
+          summary: issue_dom.data('summary')
+      )
+      make_droppable rendered.find('.issue-event')
+      $(this).append rendered
 
 
 $('.issue-text').live 'hover', (e) ->
@@ -113,14 +121,16 @@ typeTimeout = null
 
 search = () ->
   q = $.trim $("#q").val()
+  ul = $('#results').find('ul')
+  ul.empty()
   if q.length > 4
+    $('#search-spinner').spin 'small'
     $.post "/search/issues", {query: q }, (data) ->
-      ul = $('#results').find('ul')
-      ul.empty()
       ul.append issue_template.render({ issues: data })
       ul.find('li .issue-event').each () ->
         make_droppable $(this)
-
+      $('#search-spinner').spin false
+      
 $("#q").keyup (e) ->
   typeTimeout = setTimeout search, 500
   

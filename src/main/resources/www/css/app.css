@@ -14,3 +14,7 @@ p.issue-text {
     width: 100%;
     text-overflow: ellipsis;
 }
+#search-spinner {
+    float: right;
+    margin-top: 1em;
+}
