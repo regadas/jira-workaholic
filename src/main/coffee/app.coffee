@@ -1,4 +1,4 @@
-issue = "{{#issues}}<li><span class='label label-info issue-event' data-project='{{project}}' data-issue='{{ key }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
+issue = "{{#issues}}<li><span class='label label-info issue-event' data-issue='{{ key }}' data-summary='{{ summary }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
 info = "<div class='alert alert-info'>{{ message }}</div>"
 warn_sync = "<div class='alert'><strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/state/sync'>Sync with JIRA</a></div>"
 issue_template = Hogan.compile(issue)
@@ -47,18 +47,17 @@ render_calendar = (events) ->
           $('#myModal').modal 'toggle'
           $('#notification').show()
 
-make_droppable = (elems) ->
-  elems.each () ->
-    project = $(this).data('project')
-    issue = $(this).data('issue')
-    $(this).data 'eventObject', 
-      title: $.trim(issue)
-      issue: issue
-      project: project
-    $(this).draggable
-      zIndex: 999,
-      revert: true,
-      revertDuration: 0
+make_droppable = (elem) ->
+  project = elem.data('project')
+  issue = elem.data('issue')
+  elem.data 'eventObject', 
+    title: $.trim(issue)
+    issue: issue
+    project: project
+  elem.draggable
+    zIndex: 999,
+    revert: true,
+    revertDuration: 0
 
 check_state = () ->
   $.getJSON "/state", (data) ->
@@ -67,7 +66,23 @@ check_state = () ->
         message: "Hey! You have unsaved changes."
       })
 
+#issues favaorite area made droppable
+$('#fav-issues').droppable
+  drop: (event, ui) ->
+    issue_dom = ui.draggable
+    $('#empty-fav-issues').remove()
+    rendered = $(issue_template.render
+      issues:
+        key: issue_dom.data('issue')
+        summary: issue_dom.data('summary')
+    )
+    make_droppable rendered.find('.issue-event')
+    $(this).append rendered
+
+
 $('.issue-text').live 'hover', (e) ->
+  $(this).tooltip
+    placement: 'right'
   $(this).tooltip 'show'
 
 $('.project').live 'click', (e) ->
@@ -82,7 +97,8 @@ $('.project').live 'click', (e) ->
       data.map (e) ->
         e.project = project
       ul.html(issue_template.render({ issues: data })).show()
-      make_droppable $('.issue-event')
+      $('.issue-event').each () ->
+        make_droppable $(this)
     
     $.getJSON "/state/#{project}/worklog", (cached) ->
       cached.map (e) ->
@@ -101,7 +117,9 @@ search = () ->
     $.post "/search/issues", {query: q }, (data) ->
       ul = $('#results').find('ul')
       ul.empty()
-      ul.append(issue_template.render({ issues: data }))
+      ul.append issue_template.render({ issues: data })
+      ul.find('li .issue-event').each () ->
+        make_droppable $(this)
 
 $("#q").keyup (e) ->
   typeTimeout = setTimeout search, 500

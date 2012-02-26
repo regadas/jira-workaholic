@@ -27,11 +27,11 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
       case Some(rt) => home(
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
           <form id="q-form" class="form-search">
-            <input id="q" type="text" class="input-medium search-query"/>
+            <input id="q" type="text" class="input-medium search-query" placeholder="Search for Issues ..."/>
           </form>
           <div id="results"><ul></ul></div>
           <li class="nav-header">Favorite Issues</li>
-          <li class="nav-header">Favorite Projects</li>
+          <ul id="fav-issues" class="nav nav-list"><li id="empty-fav-issues">Drop some issues here!</li></ul>
           <li class="nav-header">All Projects</li>
           <ul class="nav nav-list">
             {
