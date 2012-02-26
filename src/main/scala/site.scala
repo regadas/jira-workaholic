@@ -29,9 +29,9 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
           <form id="q-form" class="form-search">
             <input id="q" type="text" class="input-medium search-query" placeholder="Search for Issues ..."/>
           </form>
-          <div id="results"><ul></ul></div>
+          <div id="results"><ul class="nav nav-list" /></div>
           <li class="nav-header">Favorite Issues</li>
-          <ul id="fav-issues" class="nav nav-list"><li id="empty-fav-issues">Drop some issues here!</li></ul>
+          <ul id="fav-issues" class="nav nav-list"><li id="empty-fav-issues">Drop here some issues</li></ul>
           <li class="nav-header">All Projects</li>
           <ul class="nav nav-list">
             {
