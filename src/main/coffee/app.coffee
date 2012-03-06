@@ -66,6 +66,12 @@ check_state = () ->
         message: "Hey! You have unsaved changes."
       })
 
+#issue_worklog = () ->
+
+fetch_worklogs = () ->
+  $('#fav-issues').find('.issue-event').each () ->
+    console.log $(this)
+
 #issues favaorite area made droppable
 $('#fav-issues').droppable
   drop: (event, ui) ->
@@ -126,10 +132,12 @@ search = () ->
   if q.length > 4
     $('#search-spinner').spin 'small'
     $.post "/search/issues", {query: q }, (data) ->
+      ul.empty()
       ul.append issue_template.render({ issues: data })
       ul.find('li .issue-event').each () ->
         make_droppable $(this)
       $('#search-spinner').spin false
+    
       
 $("#q").keyup (e) ->
   typeTimeout = setTimeout search, 500
@@ -163,9 +171,9 @@ $('#add').live 'click', (e) ->
     created: event.created.getTime()
   }), (data) ->
     calendar.fullCalendar 'renderEvent', event, true
+    check_state()
     
   $('#myModal').modal 'toggle'
-  check_state()
 
 $("#start-event").timepicker
   timeFormat: 'G:i'
@@ -179,3 +187,4 @@ $("#end-event").timepicker
 
 render_calendar []
 check_state()
+fetch_worklogs()

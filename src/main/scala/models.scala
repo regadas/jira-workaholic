@@ -77,6 +77,10 @@ object Issue {
 
   implicit val fromDBObject = (obj: DBObject) =>
     Issue(obj.getAs[String]("key").get, obj.getAs[String]("summary").get)
+
+  def list(user: String): Iterator[Issue] = collection(Issue.COLL_NAME) { coll =>
+    for { x <- coll.find(DBObject("user" -> user)) } yield x
+  }
 }
 
 case class WorkLog(id: Option[String], project: String, issue: String, spentInSeconds: Long, start: DateTime, created: DateTime) {

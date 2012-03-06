@@ -20,19 +20,22 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   implicit lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
-  def intent = (home /: Seq(projects, issues, worklogs, update, cache, search))(_ orElse _)
+  def intent = (home /: Seq(projects, issues, worklogs, update, user, search))(_ orElse _)
 
   def home: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/") & Cookies(c)) => CookieToken(req) match {
       case Some(rt) => home(
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
-          <form id="q-form" class="form-search">
-            <input id="q" type="text" class="input-medium search-query" placeholder="Search for Issues ..."/>
-            <div id="search-spinner"/>
-          </form>
-          <div id="results"><ul class="nav nav-list"/></div>
           <li class="nav-header">Favorite Issues</li>
           <ul id="fav-issues" class="nav nav-list"><li class="empty"><p>Drop here some issues</p></li></ul>
+          <li class="nav-header">Search Issues</li>
+          <ul class="nav nav-list">
+            <form id="q-form" class="form-search">
+              <input id="q" type="text" class="input-medium search-query" placeholder="Search for Issues ..."/>
+              <div id="search-spinner"/>
+            </form>
+            <div id="results"><ul class="nav nav-list"/></div>
+          </ul>
           <li class="nav-header">All Projects</li>
           <ul class="nav nav-list">
             {
@@ -78,7 +81,6 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
                  </div>)
       case _ => index
     }
-
   }
 
   def search: Cycle.Intent[Any, Any] = {
@@ -144,7 +146,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
           val created = new DateTime(createdTime.toLong)
           model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).save(rt.user)
         }
-        JsonContent ~> Ok
+        Ok
       case _ => Forbidden ~> Redirect("/")
     }
     case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: "delete" :: Nil))) => CookieToken(req) match {
@@ -158,7 +160,25 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
     }
   }
 
-  def cache: Cycle.Intent[Any, Any] = {
+  def user: Cycle.Intent[Any, Any] = {
+    case req @ Path("/user/favorite/issues") => CookieToken(req) match {
+      case Some(rt) => req match {
+        case GET(_) => JsonContent ~> Json(model.Issue.list(rt.user).toList)
+        case POST(_) =>
+          val json = parse(Body.string(req))
+          for {
+            JField("key", JString(key)) <- json
+            JField("summary", JString(summary)) <- json
+          } yield {
+            model.Issue(key, summary).save(rt.user)
+          }
+          Ok
+        case _ => NotFound
+      }
+      case _ => Forbidden ~> Redirect("/")
+
+    }
+
     case req @ GET(Path(Seg("state" :: Nil))) => CookieToken(req) match {
       case Some(rt) => JsonContent ~> Json(("cache" -> model.User.hasState(rt.user)))
       case _ => Forbidden ~> Redirect("/")
@@ -170,8 +190,7 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
     }
     case req @ GET(Path(Seg("state" :: "sync" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
-        logger.debug("State sync for user %s" format rt.user)
-        User.sync(rt)
+        model.User.sync(rt)
         Ok ~> Redirect("/")
       case _ => Forbidden ~> Redirect("/")
     }
