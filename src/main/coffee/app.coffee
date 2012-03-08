@@ -1,6 +1,13 @@
-issue = "{{#issues}}<li><span class='label label-info issue-event' data-issue='{{ key }}' data-summary='{{ summary }}'>{{ key }}</span><p class='issue-text' data-original-title='{{summary}}'><small>{{summary}}</small></p></li>{{/issues}}"
+issue = "{{#issues}}<li>
+    <span class='label label-info issue-event' data-issue='{{ key }}' data-summary='{{ summary }}'>{{ key }}</span>
+    <p class='issue-text' data-original-title='{{summary}}'>
+      <small>{{summary}}</small>
+    </p>
+  </li>{{/issues}}"
 info = "<div class='alert alert-info'>{{ message }}</div>"
-warn_sync = "<div class='alert'><strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/state/sync'>Sync with JIRA</a></div>"
+warn_sync = "<div class='alert'>
+    <strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/state/sync'>Sync with JIRA</a>
+  </div>"
 issue_template = Hogan.compile(issue)
 info_message = Hogan.compile(info)
 warn_sync_message = Hogan.compile(warn_sync)
@@ -24,10 +31,10 @@ render_calendar = (events) ->
             minuteDelta + " minutes."
         )
         if allDay
-          alert("Event is now all-day");
+          alert "Event is now all-day"
         else
-          alert("Event has a time-of-day")
-        if !confirm("Are you sure about this change?")
+          alert "Event has a time-of-day"
+        unless confirm("Are you sure about this change?")
           revertFunc()
       eventClick: (event, jsEvent, view) ->
         #TODO: confirm dialog should be temporary
@@ -51,7 +58,7 @@ make_droppable = (elem) ->
   project = elem.data('project')
   issue = elem.data('issue')
   elem.data 'eventObject', 
-    title: $.trim(issue)
+    title: $.trim issue
     issue: issue
     project: project
   elem.draggable
@@ -77,7 +84,7 @@ $('#fav-issues').droppable
   drop: (event, ui) ->
     issue_dom = ui.draggable
     $(this).find('.empty').remove()
-    elems = $(this).find('li .issue-event')
+    elems = $(this).find 'li .issue-event'
     exists = () ->
       result = false
       elems.each (e) ->
@@ -87,10 +94,10 @@ $('#fav-issues').droppable
     if not exists()
       rendered = $(issue_template.render
         issues:
-          key: issue_dom.data('issue')
-          summary: issue_dom.data('summary')
+          key: issue_dom.data 'issue'
+          summary: issue_dom.data 'summary'
       )
-      make_droppable rendered.find('.issue-event')
+      make_droppable rendered.find '.issue-event'
       $(this).append rendered
 
 
@@ -106,7 +113,7 @@ $('.project').live 'click', (e) ->
     $('.active').removeClass 'active'
     p.addClass 'active'
     ul = $(this).find 'ul'
-    project = $(this).data('key')
+    project = $(this).data 'key'
     $.getJSON "/projects/#{project}/issues", (data) ->
       data.map (e) ->
         e.project = project
