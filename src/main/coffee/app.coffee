@@ -25,15 +25,15 @@ render_calendar = (events) ->
       editable: true
       droppable: true
       eventDrop: (event,dayDelta,minuteDelta,allDay,revertFunc) ->
-        alert(
+        console.log(
             event.title + " was moved " +
             dayDelta + " days and " +
             minuteDelta + " minutes."
         )
         if allDay
-          alert "Event is now all-day"
+          console.log "Event is now all-day"
         else
-          alert "Event has a time-of-day"
+          console.log "Event has a time-of-day"
         unless confirm("Are you sure about this change?")
           revertFunc()
       eventClick: (event, jsEvent, view) ->
