@@ -32,7 +32,7 @@ case class Api(url: URL) extends Client(url) with Logging {
     }
 
     def worklogs(auth: ClientToken, project: String, max: Option[Int] = None): List[WorkLog] = Clock("jira projects worklogs") {
-      issue.list(auth, project, max) flatMap { i => issue.worklogs(auth, project, i.key) }
+      issue.list(auth, project, max) flatMap { i => issue.worklogs(auth, i.key) }
     }
   }
 
@@ -41,12 +41,17 @@ case class Api(url: URL) extends Client(url) with Logging {
       service.getIssuesFromTextSearchWithLimit(auth.token, term, 0, max).toList
     }
 
+    def find(auth: ClientToken, key:String): Issue = Clock("find by key") {
+      service.getIssue(auth.token, key)
+    }
+
     def list(auth: ClientToken, project: String, max: Option[Int] = None): List[Issue] = Clock("jira issue list") {
       service.getIssuesFromJqlSearch(auth.token, "project = \"%s\" AND assignee = \"%s\"" format (project, auth.user), max.getOrElse(20)).toList
     }
 
-    def worklogs(auth: ClientToken, project: String, issue: String): List[WorkLog] = Clock("jira issue worklog") {
-      (service.getWorklogs(auth.token, issue) filter { wl => wl.getAuthor == auth.user } toList) map { remote => WorkLog(project, issue, remote) }
+    def worklogs(auth: ClientToken, issue: String): List[WorkLog] = Clock("jira issue worklog") {
+      val remoteIssue = service.getIssue(auth.token, issue)
+      (service.getWorklogs(auth.token, issue) filter { wl => wl.getAuthor == auth.user } toList) map { remote => WorkLog(remoteIssue.getProject, issue, remote) }
     }
   }
 

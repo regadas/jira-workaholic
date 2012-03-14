@@ -20,14 +20,14 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
 
   implicit lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
-  def intent = (home /: Seq(projects, issues, worklogs, update, user, search))(_ orElse _)
+  def intent = (home /: Seq(projects, issues, user, search))(_ orElse _)
 
   def home: Cycle.Intent[Any, Any] = {
     case req @ GET(Path("/") & Cookies(c)) => CookieToken(req) match {
       case Some(rt) => home(
         <p class="navbar-text pull-right">Logged in as <a href="#">{ rt.user }</a> <a href="/logout">Logout</a></p>)(
           <li class="nav-header">Favorite Issues</li>
-          <ul id="fav-issues" class="nav nav-list"><li class="empty"><p>Drop here some issues</p></li></ul>
+          <ul id="user-issues" class="nav nav-list"><li class="empty"><p>Drop here some issues</p></li></ul>
           <li class="nav-header">Search Issues</li>
           <ul class="nav nav-list">
             <form id="q-form" class="form-search">
@@ -103,9 +103,6 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         JsonContent ~> Json(api.project.list(rt))
       case _ => Forbidden ~> Redirect("/")
     }
-  }
-
-  def issues: Cycle.Intent[Any, Any] = {
     case req @ GET(Path(Seg("projects" :: project :: "issues" :: Nil)) & Params(params)) => CookieToken(req) match {
       case Some(rt) =>
         val expected = for {
@@ -115,9 +112,6 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         expected(params) orFail { fails => BadRequest }
       case _ => Forbidden ~> Redirect("/")
     }
-  }
-
-  def worklogs: Cycle.Intent[Any, Any] = {
     case req @ GET(Path(Seg("projects" :: project :: "worklog" :: Nil)) & Params(params)) => CookieToken(req) match {
       case Some(rt) =>
         val expected = for {
@@ -127,50 +121,48 @@ object Site extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAhol
         expected(params) orFail { fails => BadRequest }
       case _ => Forbidden ~> Redirect("/")
     }
-    case req @ GET(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) => JsonContent ~> Json(api.issue.worklogs(rt, project, issue))
-      case _ => Forbidden ~> Redirect("/")
-    }
   }
 
-  def update: Cycle.Intent[Any, Any] = {
-    case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: Nil))) => CookieToken(req) match {
-      case Some(rt) =>
-        val json = parse(Body.string(req))
-        for {
-          JField("created", JInt(createdTime)) <- json
-          JField("start", JInt(startTime)) <- json
-          JField("end", JInt(endTime)) <- json
-        } yield {
-          val start = new DateTime(startTime.toLong)
-          val created = new DateTime(createdTime.toLong)
-          model.WorkLog(None, project, issue, (endTime - startTime).toLong / 1000, start, created).save(rt.user)
-        }
-        Ok
+  def issues: Cycle.Intent[Any, Any] = {
+    case req @ Path(Seg("issues" :: key :: "worklog" :: Nil)) => CookieToken(req) match {
+      case Some(rt) => req match {
+        case GET(_) => JsonContent ~> Json(api.issue.worklogs(rt, key))
+        case POST(_) =>
+          val json = parse(Body.string(req))
+          for {
+            JField("created", JInt(createdTime)) <- json
+            JField("start", JInt(startTime)) <- json
+            JField("end", JInt(endTime)) <- json
+          } yield {
+            val start = new DateTime(startTime.toLong)
+            val created = new DateTime(createdTime.toLong)
+            model.WorkLog(None, key, (endTime - startTime).toLong / 1000, start, created).save(rt.user)
+          }
+          Ok
+      }
       case _ => Forbidden ~> Redirect("/")
     }
-    case req @ POST(Path(Seg("projects" :: project :: "issues" :: issue :: "worklog" :: "delete" :: Nil))) => CookieToken(req) match {
+    case req @ POST(Path(Seg("issues" :: issue :: "worklog" :: "delete" :: Nil))) => CookieToken(req) match {
       case Some(rt) =>
         val json = parse(Body.string(req))
         for {
           JField("created", JInt(createdTime)) <- json
-        } yield model.WorkLog.remove(rt.user, project, issue, new DateTime(createdTime.toLong))
+        } yield model.WorkLog.remove(rt.user, issue, new DateTime(createdTime.toLong))
         JsonContent ~> Ok
       case _ => Forbidden ~> Redirect("/")
     }
   }
 
   def user: Cycle.Intent[Any, Any] = {
-    case req @ Path("/user/favorite/issues") => CookieToken(req) match {
+    case req @ Path("/user/issues") => CookieToken(req) match {
       case Some(rt) => req match {
         case GET(_) => JsonContent ~> Json(model.Issue.list(rt.user).toList)
         case POST(_) =>
           val json = parse(Body.string(req))
           for {
             JField("key", JString(key)) <- json
-            JField("summary", JString(summary)) <- json
           } yield {
-            model.Issue(key, summary).save(rt.user)
+            api.issue.find(rt, key).save(rt.user)
           }
           Ok
         case _ => NotFound

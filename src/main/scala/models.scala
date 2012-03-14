@@ -19,7 +19,7 @@ object User extends Logging {
   def sync(auth: ClientToken)(implicit client: Api) = WorkLog.listByUser(auth.user).foreach { wl =>
     logger.debug("syncing worklog for %s" format wl.issue)
     client.worklog.add(auth, wl.issue, wl)
-    WorkLog.remove(auth.user, wl.project, wl.issue, wl.created)
+    WorkLog.remove(auth.user, wl.issue, wl.created)
   }
 }
 
@@ -54,8 +54,8 @@ object Project {
       obj.getAs[String]("url").get)
 }
 
-case class Issue(key: String, summary: String) {
-  def save(user: String) = collection(Project.COLL_NAME) { coll =>
+case class Issue(key: String, summary: String, project: String) {
+  def save(user: String) = collection(Issue.COLL_NAME) { coll =>
     coll += (Issue.toDBObject(this) += ("user" -> user))
   }
 }
@@ -64,26 +64,26 @@ object Issue {
   val COLL_NAME = "issues"
 
   implicit def fromRemote(remote: RemoteIssue) =
-    Issue(remote.getKey, remote.getSummary)
+    Issue(remote.getKey, remote.getSummary, remote.getProject)
 
   implicit def issueToJson(issue: Issue) =
-    ("summary" -> issue.summary) ~ ("key" -> issue.key)
+  ("summary" -> issue.summary) ~ ("key" -> issue.key) ~ ("project" -> issue.project)
 
   implicit def fromListRemote(remotes: List[RemoteIssue]) =
     remotes map (fromRemote(_))
 
   implicit val toDBObject = (issue: Issue) =>
-    DBObject("summary" -> issue.summary, "key" -> issue.key)
+  DBObject("summary" -> issue.summary, "key" -> issue.key, "project" -> issue.project)
 
   implicit val fromDBObject = (obj: DBObject) =>
-    Issue(obj.getAs[String]("key").get, obj.getAs[String]("summary").get)
+    Issue(obj.getAs[String]("key").get, obj.getAs[String]("summary").get, obj.getAs[String]("project").get)
 
   def list(user: String): Iterator[Issue] = collection(Issue.COLL_NAME) { coll =>
     for { x <- coll.find(DBObject("user" -> user)) } yield x
   }
 }
 
-case class WorkLog(id: Option[String], project: String, issue: String, spentInSeconds: Long, start: DateTime, created: DateTime) {
+case class WorkLog(id: Option[String], issue: String, spentInSeconds: Long, start: DateTime, created: DateTime) {
 
   lazy val end = start.plus(spentInSeconds * 1000)
 
@@ -103,15 +103,13 @@ object WorkLog {
 
   def apply(project: String, issue: String, remote: RemoteWorklog) =
     new WorkLog(Option(remote.getId),
-      project: String,
       issue,
       remote.getTimeSpentInSeconds,
       new DateTime(remote.getStartDate),
       new DateTime(remote.getCreated))
 
-  def remove(user: String, project: String, issue: String, created: DateTime) = collection(COLL_NAME) { coll =>
+  def remove(user: String, issue: String, created: DateTime) = collection(COLL_NAME) { coll =>
     coll.findAndRemove(DBObject("user" -> user,
-      "project" -> project,
       "issue" -> issue,
       "created" -> created))
   }
@@ -136,7 +134,6 @@ object WorkLog {
 
   implicit val worklogToJson = (worklog: WorkLog) => ("id" -> worklog.id) ~
     ("title" -> worklog.issue) ~
-    ("project" -> worklog.project) ~
     ("issue" -> worklog.issue) ~
     // FIXME: DateTime conversions
     ("start" -> DATE_FORMAT.print(worklog.start)) ~
@@ -145,14 +142,12 @@ object WorkLog {
 
   implicit val fromDBObject = (obj: DBObject) =>
     WorkLog(obj.getAs[String]("id"),
-      obj.getAs[String]("project").get,
       obj.getAs[String]("issue").get,
       obj.getAs[Long]("spentInSeconds").get,
       obj.getAs[DateTime]("start").get,
       obj.getAs[DateTime]("created").get)
 
   implicit val toDBObject = (wl: WorkLog) => DBObject("id" -> wl.id,
-    "project" -> wl.project,
     "issue" -> wl.issue,
     "spentInSeconds" -> wl.spentInSeconds,
     "start" -> wl.start,
