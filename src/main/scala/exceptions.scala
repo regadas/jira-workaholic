@@ -13,13 +13,11 @@ trait JiraWorkAholicErrorResponse extends Logging { self: ExceptionHandler =>
     if (ch.isOpen) try {
       t match {
         case e: RemoteAuthenticationException =>
-          logger.warn("authentication exception")
-          val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED)
-          res.setStatus(HttpResponseStatus.FOUND)
-          res.setHeader(HttpHeaders.Names.LOCATION, "/logout")
+          logger.warn("authentication exception ... jira session timeout")
+          val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN)
           ch.write(res).addListener(ChannelFutureListener.CLOSE)
         case unknown =>
-          logger.error("Exception caught handling request: %s :%s" format (unknown.getMessage, unknown))
+          logger.error("Exception caught handling request: %s" format unknown.getMessage, unknown)
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)
           res.setContent(ChannelBuffers.copiedBuffer("Internal Server Error".getBytes("utf-8")))
           ch.write(res).addListener(ChannelFutureListener.CLOSE)

@@ -92,7 +92,7 @@ case class WorkLog(id: Option[String], issue: String, spentInSeconds: Long, star
     "%sw %sd %sh %sm" format (period.getWeeks, period.getDays, period.getHours, period.getMinutes)
   }
 
-  def save(user: String) = collection(Project.COLL_NAME) { coll =>
+  def save(user: String) = collection(WorkLog.COLL_NAME) { coll =>
     coll += (WorkLog.toDBObject(this) += ("user" -> user))
   }
 }

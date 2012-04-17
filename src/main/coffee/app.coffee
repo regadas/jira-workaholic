@@ -6,12 +6,18 @@ issue = "{{#issues}}<li>
   </li>{{/issues}}"
 info = "<div class='alert alert-info'>{{ message }}</div>"
 warn_sync = "<div class='alert'>
-    <strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/state/sync'>Sync with JIRA</a>
+    <strong> Warning! </strong>{{ message }}<a class='btn btn-warning' href='/user/state/sync'>Sync with JIRA</a>
   </div>"
 issue_template = Hogan.compile(issue)
 info_message = Hogan.compile(info)
 warn_sync_message = Hogan.compile(warn_sync)
 calendar = $('#calendar')
+
+$.ajaxSetup
+  error: 
+    (jqXHR, exception) ->
+      console.log jqXHR.status
+      window.location = '/login' if jqXHR.status == 403 #forbidden
 
 render_calendar = (events) ->
   calendar.empty()
@@ -39,7 +45,7 @@ render_calendar = (events) ->
       eventClick: (event, jsEvent, view) ->
         #TODO: confirm dialog should be temporary
         if confirm("Delete this worklog?")
-          $.post "/projects/#{event.project}/issues/#{event.issue}/worklog/delete", JSON.stringify({
+          $.post "/issues/#{event.issue}/worklog/delete", JSON.stringify({
             created: event.created
           }), (data) ->
             calendar.fullCalendar 'removeEvents', (object) ->
@@ -54,6 +60,11 @@ render_calendar = (events) ->
           $('#myModal').modal 'toggle'
           $('#notification').show()
 
+render_events = (unsaved, events...) ->
+  events.map (event) ->
+    event.color = 'red' if unsaved
+    calendar.fullCalendar 'renderEvent', event, true
+
 make_droppable = (elem) ->
   project = elem.data('project')
   issue = elem.data('issue')
@@ -67,20 +78,27 @@ make_droppable = (elem) ->
     revertDuration: 0
 
 check_state = () ->
-  $.getJSON "/state", (data) ->
-    if data.cache
-      $('#messages').append warn_sync_message.render({ 
+  $.getJSON "/user/state", (data) ->
+    if data.state
+      $('#messages').append warn_sync_message.render
         message: "Hey! You have unsaved changes."
-      })
 
-#issue_worklog = () ->
+user_issues = (issue) ->
+  $.getJSON "/user/issues", (data) ->
+    rendered = $(issue_template.render issues: data)
+    $('#user-issues').append rendered
+    data.map (i) ->
+      $.getJSON "/issues/#{i.key}/worklogs", (data) ->
+        render_events false, data...
+    make_droppable rendered.find '.issue-event'
 
-fetch_worklogs = () ->
-  $('#fav-issues').find('.issue-event').each () ->
-    console.log $(this)
+user_add_issue = (key) ->
+  $.post "/user/issues", JSON.stringify({'key':key}), (data) ->
+    $.getJSON "/issues/#{key}/worklogs", (data) ->
+      render_events false, data...
 
-#issues favaorite area made droppable
-$('#fav-issues').droppable
+#issues from the favorite area made droppable
+$('#user-issues').droppable
   drop: (event, ui) ->
     issue_dom = ui.draggable
     $(this).find('.empty').remove()
@@ -91,7 +109,7 @@ $('#fav-issues').droppable
         if $(this).data('issue') is issue_dom.data('issue')
           result = true
       result
-    if not exists()
+    unless exists()
       rendered = $(issue_template.render
         issues:
           key: issue_dom.data 'issue'
@@ -99,7 +117,7 @@ $('#fav-issues').droppable
       )
       make_droppable rendered.find '.issue-event'
       $(this).append rendered
-
+      user_add_issue issue_dom.data('issue')
 
 $('.issue-text').live 'hover', (e) ->
   $(this).tooltip
@@ -120,18 +138,15 @@ $('.project').live 'click', (e) ->
       ul.html(issue_template.render({ issues: data })).show()
       $('.issue-event').each () ->
         make_droppable $(this)
-    
-    $.getJSON "/state/#{project}/worklog", (cached) ->
-      cached.map (e) ->
-        e.color = 'red' 
-      $.getJSON "/projects/#{project}/worklog", (data) ->
+
+    $.getJSON "/user/state", (data) ->
+      render_events false, data.worklogs...
+      $.getJSON "/projects/#{project}/worklogs", (data) ->
         calendar.fullCalendar 'removeEvents'
-        data.concat(cached).map (e) ->
-          calendar.fullCalendar 'renderEvent', e, true
+        render_events false, data...
 
 # Consider using some sort of plugin here
 typeTimeout = null
-
 search = () ->
   q = $.trim $("#q").val()
   ul = $('#results').find('ul')
@@ -144,14 +159,13 @@ search = () ->
       ul.find('li .issue-event').each () ->
         make_droppable $(this)
       $('#search-spinner').spin false
-    
-      
+
 $("#q").keyup (e) ->
   typeTimeout = setTimeout search, 500
-  
+
 $("#q").keydown (e) ->
   clearTimeout typeTimeout
-  
+
 $("#q-form").live 'submit', (e) ->
   e.preventDefault()
   clearTimeout typeTimeout
@@ -172,7 +186,7 @@ $('#add').live 'click', (e) ->
   if event.end < event.start
     event.end.setDate(event.start.getDate() + 1)
   
-  $.post "/projects/#{event.project}/issues/#{event.issue}/worklog", JSON.stringify({
+  $.post "/issues/#{event.issue}/worklogs", JSON.stringify({
     start: event.start.getTime()
     end: event.end.getTime()
     created: event.created.getTime()
@@ -194,4 +208,4 @@ $("#end-event").timepicker
 
 render_calendar []
 check_state()
-fetch_worklogs()
+user_issues()

@@ -31,7 +31,20 @@ object CookieToken {
   def apply[T](r: HttpRequest[T]) = unapply(r)
 }
 
-object Authentication extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAholicErrorResponse with Logging {
+trait Authentication {
+
+  def auth[T](request: HttpRequest[T])(f: ClientToken => ResponseFunction[Any]): ResponseFunction[Any]  = try {
+    CookieToken(request) match {
+      case Some(rt) => f(rt)
+      case _ => Forbidden
+    }
+  } catch {
+    case _ => 
+      ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> Redirect("/")
+  }
+}
+
+object Authentication extends cycle.Plan with cycle.SynchronousExecution with JiraWorkAholicErrorResponse with Template with Logging {
 
   object User extends Params.Extract("user", Params.first ~> Params.nonempty)
   object Password extends Params.Extract("password", Params.first ~> Params.nonempty)
@@ -39,16 +52,20 @@ object Authentication extends cycle.Plan with cycle.SynchronousExecution with Ji
   lazy val api = Api(new URL(Props.get("JIRA_WS")))
 
   def intent: Cycle.Intent[Any, Any] = {
-    case POST(Path("/login") & Params(User(user) & Password(password))) => {
-      try {
-        ResponseCookies(Cookie("token", api.login(user, password).toCookieString)) ~> Redirect("/")
-      } catch { case _ => Redirect("/") }
+    case req @ Path("/login") => req match {
+      case GET(_) => 
+        ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> login
+      case POST(_ & Params(User(user) & Password(password))) => try {
+          ResponseCookies(Cookie("token", api.login(user, password).toCookieString)) ~> Redirect("/")
+        } catch { case _ => Redirect("/") }
     }
-    case req @ GET(Path("/logout")) => CookieToken(req) match {
-      case Some(rt) =>
-        api.logout(rt)
-        ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> Redirect("/")
-      case _ => Forbidden ~> Redirect("/")
+    case req @ GET(Path("/logout")) => {
+      CookieToken(req) match {
+        case Some(rt) =>
+          api.logout(rt)
+        case _ => Forbidden
+      }
+      ResponseCookies(Cookie("token", "", maxAge = Some(0))) ~> Redirect("/")
     }
   }
 
